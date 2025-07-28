@@ -360,6 +360,40 @@
             }
 
             selectSample(index) {
+                // Stop any currently playing audio
+                if (this.currentAudio && !this.currentAudio.paused) {
+                    this.currentAudio.pause();
+                    this.isPlaying = false;
+                    this.updatePlayButton();
+                }
+                
+                // Terminate any currently playing MIDI players
+                if (this.midiPlayer) {
+                    try {
+                        // Stop MIDI playback
+                        this.midiPlayer.stop();
+                        
+                        // Clear the player reference to ensure complete termination
+                        this.midiPlayer = null;
+                    } catch (error) {
+                        console.log('Could not stop MIDI player:', error);
+                        // Force clear the reference even if stop fails
+                        this.midiPlayer = null;
+                    }
+                }
+                
+                // Also stop any other MIDI elements that might be playing
+                const allMidiPlayers = document.querySelectorAll('midi-player');
+                allMidiPlayers.forEach(player => {
+                    try {
+                        if (player.stop && typeof player.stop === 'function') {
+                            player.stop();
+                        }
+                    } catch (error) {
+                        console.log('Could not stop midi-player element:', error);
+                    }
+                });
+                
                 // Update active sample in UI
                 document.querySelectorAll('.sample-item').forEach((item, i) => {
                     item.classList.toggle('active', i === index);
