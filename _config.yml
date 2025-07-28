@@ -1,0 +1,29 @@
+# GitHub Pages Configuration for Violin Transcription Demo
+
+# Basic settings
+title: "Violin Transcription Demo"
+description: "Interactive audio-to-MIDI transcription demo with MIDI visualization"
+baseurl: "" # Leave empty if repository name is the subdirectory
+url: "" # GitHub will set this automatically
+
+# GitHub Pages settings
+plugins:
+  - jekyll-relative-links
+
+# Markdown settings
+markdown: kramdown
+highlighter: rouge
+
+# Include/Exclude files
+include:
+  - audio_folder
+
+exclude:
+  - "*.log"
+  - "node_modules"
+  - "*.tmp"
+
+# Relative links
+relative_links:
+  enabled: true
+  collections: false 

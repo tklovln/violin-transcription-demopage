@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Violin Transcription Demo</title>
+    
+    <!-- HTML MIDI Player Dependencies -->
+    <script src="https://cdn.jsdelivr.net/combine/npm/tone@14.7.58,npm/@magenta/music@1.23.1/es6/core.js,npm/html-midi-player@1.5.0"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f8f9fa;
+            color: #333;
+            line-height: 1.6;
+            overflow-x: hidden;
+            max-width: 100vw;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 300;
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: #7f8c8d;
+            font-size: 1.1rem;
+        }
+
+        .demo-grid {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 2rem;
+            margin-top: 2rem;
+            max-width: 100%;
+            overflow: hidden;
+        }
+
+        .sample-list {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            height: fit-content;
+        }
+
+        .sample-list h3 {
+            margin-bottom: 1rem;
+            color: #2c3e50;
+            font-weight: 400;
+        }
+
+        .sample-item {
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            background: #f8f9fa;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 2px solid transparent;
+        }
+
+        .sample-item:hover {
+            background: #e9ecef;
+            transform: translateY(-1px);
+        }
+
+        .sample-item.active {
+            background: #3498db;
+            color: white;
+            border-color: #2980b9;
+        }
+
+        .player-area {
+            background: white;
+            border-radius: 8px;
+            padding: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+
+        .audio-section, .midi-section {
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            font-size: 1.3rem;
+            color: #2c3e50;
+            margin-bottom: 1rem;
+            font-weight: 400;
+        }
+
+        .audio-controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .play-btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.2s ease;
+        }
+
+        .play-btn:hover {
+            background: #2980b9;
+        }
+
+        .time-display {
+            font-family: monospace;
+            color: #7f8c8d;
+        }
+
+        .progress-container {
+            width: 100%;
+            height: 6px;
+            background: #ecf0f1;
+            border-radius: 3px;
+            cursor: pointer;
+            margin-bottom: 1rem;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: #3498db;
+            border-radius: 3px;
+            width: 0%;
+            transition: width 0.1s ease;
+        }
+
+        .midi-player-container {
+            background: #f8f9fa;
+            border-radius: 6px;
+            padding: 1rem;
+            min-height: 200px;
+            border: 1px solid #dee2e6;
+        }
+
+        .placeholder {
+            text-align: center;
+            color: #7f8c8d;
+            font-style: italic;
+            padding: 2rem;
+        }
+
+        midi-player {
+            width: 100%;
+            max-width: 100%;
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+
+        midi-visualizer {
+            width: 100%;
+            max-width: 100%;
+            height: 200px;
+            max-height: 200px;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+
+        .midi-player-container {
+            background: #f8f9fa;
+            border-radius: 6px;
+            padding: 1rem;
+            min-height: 200px;
+            border: 1px solid #dee2e6;
+            overflow: hidden;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+
+        @media (max-width: 768px) {
+            .demo-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .container {
+                padding: 1rem;
+                max-width: 100vw;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .player-area {
+                padding: 1rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .container {
+                padding: 0.5rem;
+            }
+            
+            midi-visualizer {
+                height: 150px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Violin Transcription Demo</h1>
+            <p class="subtitle"></p>
+        </header>
+
+        <div class="demo-grid">
+            <!-- Sample Selection -->
+            <div class="sample-list">
+                <h3>Samples</h3>
+                <div id="sample-list">
+                    <div class="placeholder">Loading samples...</div>
+                </div>
+            </div>
+
+            <!-- Player Area -->
+            <div class="player-area">
+                <div id="no-selection" class="placeholder">
+                    Select an audio sample to begin
+                </div>
+
+                <div id="player-content" style="display: none;">
+                    <!-- Audio Player -->
+                    <div class="audio-section">
+                        <h2 class="section-title">Original Audio</h2>
+                        <div class="audio-controls">
+                            <button id="play-btn" class="play-btn">Play</button>
+                            <span id="time-display" class="time-display">0:00 / 0:00</span>
+                        </div>
+                        <div class="progress-container" id="progress-container">
+                            <div class="progress-bar" id="progress-bar"></div>
+                        </div>
+                        <audio id="audio-player" preload="auto"></audio>
+                    </div>
+
+                    <!-- MIDI Player -->
+                    <div class="midi-section">
+                        <h2 class="section-title">MIDI Transcription</h2>
+                        <div class="midi-player-container" id="midi-container">
+                            <div class="placeholder">Select a sample to load MIDI visualization</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class ViolinTranscriptionDemo {
+            constructor() {
+                this.currentAudio = null;
+                this.currentSample = null;
+                this.midiPlayer = null;
+                this.isPlaying = false;
+                
+                // Define sample files (replace with your own)
+                this.samples = [
+                    {
+                        name: "Bach Violin Partita No. 3 Preludio, BWV 1006",
+                        audioPath: "audio_folder/ba3_yv04_t3_audio.wav", 
+                        midiPath: "audio_folder/ba3_yv04_t3_audio.mid"
+                    },
+                    {
+                        name: "Bach ViolinPartita No. 2 Giga, BWV 1006",
+                        audioPath: "audio_folder/Augustin Hadelich plays Bach Giga from Partita No. 2 Live (2021).mp3", 
+                        midiPath: "audio_folder/Augustin Hadelich plays Bach Giga from Partita No. 2 Live (2021).mid"
+                    },
+                    {
+                        name: "Kayser Violin Etudes No. 33",
+                        audioPath: "audio_folder/Kayser_Op20-33_JPRafferty_h9jK8y_eris-0000-0138_audio.wav", 
+                        midiPath: "audio_folder/Kayser_Op20-33_JPRafferty_h9jK8y_eris-0000-0138_audio.mid"
+                    },
+                    {
+                        name: "Piece from Jupiter",
+                        audioPath: "audio_folder/AuSep_1_vn_01_Jupiter.wav",
+                        midiPath: "audio_folder/AuSep_1_vn_01_Jupiter.mid"
+                    },
+                    {
+                        name: "Rondeau from Abdelazer",
+                        audioPath: "audio_folder/AuSep_1_vn_36_Rondeau.wav",
+                        midiPath: "audio_folder/AuSep_1_vn_36_Rondeau.mid"
+                    },
+                ];
+                
+                this.init();
+            }
+
+            init() {
+                this.renderSampleList();
+                this.setupEventListeners();
+                
+                // Automatically select the first sample if available
+                if (this.samples.length > 0) {
+                    this.selectSample(0);
+                }
+            }
+
+            renderSampleList() {
+                const sampleListContainer = document.getElementById('sample-list');
+                
+                if (this.samples.length === 0) {
+                    sampleListContainer.innerHTML = '<div class="placeholder">No samples available.<br>Add .wav and .mid files to audio_folder/</div>';
+                    return;
+                }
+
+                sampleListContainer.innerHTML = '';
+                
+                this.samples.forEach((sample, index) => {
+                    const sampleElement = document.createElement('div');
+                    sampleElement.className = 'sample-item';
+                    sampleElement.textContent = sample.name;
+                    sampleElement.dataset.index = index;
+                    sampleElement.addEventListener('click', () => this.selectSample(index));
+                    sampleListContainer.appendChild(sampleElement);
+                });
+            }
+
+            setupEventListeners() {
+                const playBtn = document.getElementById('play-btn');
+                const progressContainer = document.getElementById('progress-container');
+                
+                playBtn.addEventListener('click', () => this.togglePlayback());
+                progressContainer.addEventListener('click', (e) => this.seekAudio(e));
+                
+                // Audio events will be set up when a sample is selected
+            }
+
+            selectSample(index) {
+                // Update active sample in UI
+                document.querySelectorAll('.sample-item').forEach((item, i) => {
+                    item.classList.toggle('active', i === index);
+                });
+
+                this.currentSample = this.samples[index];
+                this.loadSample();
+            }
+
+            async loadSample() {
+                if (!this.currentSample) return;
+
+                // Show player content
+                document.getElementById('no-selection').style.display = 'none';
+                document.getElementById('player-content').style.display = 'block';
+
+                // Load audio
+                this.loadAudio();
+                
+                // Load MIDI
+                await this.loadMIDI();
+            }
+
+            loadAudio() {
+                const audio = document.getElementById('audio-player');
+                audio.src = this.currentSample.audioPath;
+                
+                // Reset player state
+                this.isPlaying = false;
+                this.updatePlayButton();
+                
+                // Set up audio event listeners
+                audio.onloadedmetadata = () => this.updateTimeDisplay();
+                audio.ontimeupdate = () => {
+                    this.updateProgressBar();
+                    this.updateTimeDisplay();
+                };
+                audio.onended = () => {
+                    this.isPlaying = false;
+                    this.updatePlayButton();
+                };
+                
+                this.currentAudio = audio;
+            }
+
+            async loadMIDI() {
+                const container = document.getElementById('midi-container');
+                container.innerHTML = '<div class="placeholder">Loading MIDI...</div>';
+
+                try {
+                    // Load MIDI file as NoteSequence
+                    const noteSequence = await core.urlToNoteSequence(this.currentSample.midiPath);
+                    
+                    // Clear container
+                    container.innerHTML = '';
+                    
+                    // Create MIDI player
+                    const midiPlayer = document.createElement('midi-player');
+                    midiPlayer.noteSequence = noteSequence;
+                    midiPlayer.soundFont = 'https://storage.googleapis.com/magentadata/js/soundfonts/sgm_plus';
+                    
+                    // Create MIDI visualizer
+                    const midiVisualizer = document.createElement('midi-visualizer');
+                    midiVisualizer.type = 'piano-roll';
+                    midiVisualizer.noteSequence = noteSequence;
+                    midiVisualizer.id = 'midi-vis';
+                    
+                    // Configure visualizer to stay within bounds
+                    midiVisualizer.config = {
+                        noteHeight: 4,
+                        pixelsPerTimeStep: 30,
+                        minPitch: 21,
+                        maxPitch: 108,
+                        showOnlyOctavesUsed: true
+                    };
+                    
+                    // Add to container
+                    container.appendChild(midiPlayer);
+                    container.appendChild(midiVisualizer);
+                    
+                    // Connect player to visualizer
+                    midiPlayer.addVisualizer(midiVisualizer);
+                    
+                    this.midiPlayer = midiPlayer;
+                    
+                } catch (error) {
+                    console.error('Error loading MIDI:', error);
+                    container.innerHTML = '<div class="placeholder">Could not load MIDI file.<br>Check that the file exists and is accessible.</div>';
+                }
+            }
+
+            togglePlayback() {
+                if (!this.currentAudio) return;
+
+                if (this.isPlaying) {
+                    this.currentAudio.pause();
+                } else {
+                    this.currentAudio.play().catch(error => {
+                        console.error('Playback failed:', error);
+                        alert('Audio playback failed. Please check the file path and CORS settings.');
+                    });
+                }
+                
+                this.isPlaying = !this.isPlaying;
+                this.updatePlayButton();
+            }
+
+            updatePlayButton() {
+                const playBtn = document.getElementById('play-btn');
+                playBtn.textContent = this.isPlaying ? 'Pause' : 'Play';
+            }
+
+            updateProgressBar() {
+                if (!this.currentAudio) return;
+                
+                const progress = (this.currentAudio.currentTime / this.currentAudio.duration) * 100;
+                document.getElementById('progress-bar').style.width = `${progress}%`;
+            }
+
+            updateTimeDisplay() {
+                if (!this.currentAudio) return;
+                
+                const current = this.formatTime(this.currentAudio.currentTime);
+                const total = this.formatTime(this.currentAudio.duration || 0);
+                document.getElementById('time-display').textContent = `${current} / ${total}`;
+            }
+
+            seekAudio(event) {
+                if (!this.currentAudio) return;
+                
+                const rect = event.currentTarget.getBoundingClientRect();
+                const clickX = event.clientX - rect.left;
+                const width = rect.width;
+                const seekTime = (clickX / width) * this.currentAudio.duration;
+                
+                this.currentAudio.currentTime = seekTime;
+            }
+
+            formatTime(seconds) {
+                if (isNaN(seconds)) return '0:00';
+                const mins = Math.floor(seconds / 60);
+                const secs = Math.floor(seconds % 60);
+                return `${mins}:${secs.toString().padStart(2, '0')}`;
+            }
+        }
+
+        // Initialize the demo when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new ViolinTranscriptionDemo();
+        });
+    </script>
+</body>
+</html> 
